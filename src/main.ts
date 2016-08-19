@@ -1,0 +1,2 @@
+import { testConst } from "./test";
+

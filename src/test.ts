@@ -1,0 +1,1 @@
+export const testConst = "asbcd WOW 5 NICEEE WOW !! NICE WORKS";

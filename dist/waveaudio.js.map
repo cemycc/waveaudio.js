@@ -1,0 +1,1 @@
+{"version":3,"file":null,"sources":["../src/test.ts","../src/main.ts"],"sourcesContent":["export const testConst = \"asbcd WOW 5 NICEEE WOW !! NICE WORKS\";","import { testConst } from \"./test\";\n\nconsole.log(testConst);\n"],"names":[],"mappings":";;;;;;CAAO,IAAM,SAAS,GAAG,sCAAsC,CAAC;;CCEhE,OAAO,CAAC,GAAG,CAAC,SAAS,CAAC,CAAC;;"}
