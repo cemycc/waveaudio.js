@@ -3,7 +3,31 @@
     <head>
         <title>waveaudio.js</title>
     </head>
+    <style>
+        .responsive-canvas {
+            position: relative;
+            width: 1024px;
+            height: 110px;
+            margin: 10px;
+        }
+        .responsive-canvas canvas {
+            max-width: 100%;
+            width: 100%;
+            height: 300px;
+        }
+    </style>
     <body>
+        <div id="mainWrapper" class="responsive-canvas">
+        </div>
         <script src="/dist/waveaudio.js"></script>
+        <script type="text/javascript">
+            var waveAudio = new waveaudiojs.Main({
+                wrapper: "#mainWrapper",
+                audioFiles: [
+                    "http://db.emanuelcostea.me/Happy%20Happy%20Game%20Show.mp3"
+                ],
+                audioChannel: 1
+            });
+        </script>
     </body>
 </html>
