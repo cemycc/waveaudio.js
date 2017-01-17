@@ -1,8 +1,16 @@
+export interface IFile {
+    url: string;
+    promise: Promise;
+    buffer: AudioBuffer;
+    color: string;
+}
+
 export interface IProperties {
     wrapper: HTMLElement | string;
     audioFiles: Array<string> | string;
     audioChannel: number;
 }
+
 
 export class BaseClass {
     private properties: IProperties;
@@ -40,5 +48,9 @@ export class BaseClass {
 
     public getProperties(): IProperties {
         return this.properties;
+    }
+
+    public getDiff(first: Array<any>, second: Array<any>) {
+        return first.filter((i) => second.indexOf(i) < 0);
     }
 }

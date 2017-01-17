@@ -1,4 +1,4 @@
-import {IProperties, BaseClass} from "./base";
+import {IProperties, IFile, BaseClass} from "./base";
 
 interface CanvasRectObject {
     x: number;
@@ -10,13 +10,14 @@ interface CanvasRectObject {
 export class CanvasContext extends BaseClass {
     public framesColor: string = "rgb(208, 215, 220)";
     public framesElapsedColor: string = "rgb(47,79,79)";
-    public framesWidthBar: number = 1;
+    public framesWidthBar: number = 5;
+    public framesWidthSpacer: number = 2;
     public timelineHeight: number = 40;
     public timelineFont: string = "9px Arial";
     public timelineTimeColor: string = "rgb(47,79,79)";
     public timelineBarColor: string = "rgb(128,128,128)";
-    public barHeight: number = 7;
-    public barWidth: number = 0.5;
+    public barHeight: number = 10;
+    public barWidth: number = 1;
     public barLargeGroupCount: number = 10;
     public barSmallGroupCount: number = 5;
     public wrapper: HTMLElement = undefined;
@@ -31,6 +32,7 @@ export class CanvasContext extends BaseClass {
 
     private step: number;
     private audioData: Array<Array<number>>;
+    private audioFiles: Array<IFile>;
     private audioDuration: number;
     private audioProgress: Function;
     private audioCompletedStatus: Function;
@@ -91,26 +93,31 @@ export class CanvasContext extends BaseClass {
         this.framesCtx.scale(this.ratio, this.ratio);
     }
 
-    public loadAudioData(bufferData: Float32Array,
+    public loadAudioData(
+            bufferData: Float32Array,
             duration: number,
+            files: Array<IFile>,
+            positions: Array<number>,
             progress: () => number,
             completed: () => boolean) {
         this.audioProgress = progress;
         this.audioCompletedStatus = completed;
         this.audioDuration = duration;
-        this.computeValues(bufferData);
+        this.audioFiles = files;
+        this.computeValues(bufferData, positions);
 
         this.clear();
     }
 
     public draw() {
-        this.computeRenderData((rectObj: CanvasRectObject, idx: number) => {
-            this.staticCtx.fillStyle = this.framesColor;
+        this.computeRenderData((rectObj: CanvasRectObject, idx: number, fileIdx: number) => {
+            //this.staticCtx.fillStyle = this.framesColor;
+            this.staticCtx.fillStyle = this.audioFiles.length ? this.audioFiles[fileIdx].color : this.framesColor;
             this.staticCtx.fillRect(rectObj.x, rectObj.y, rectObj.width, rectObj.height);
         });
 
         this.drawTimeline(this.audioDuration);
-        this.startRenderingProgress();
+        //this.startRenderingProgress();
     }
 
     public startRenderingProgress() {
@@ -145,43 +152,66 @@ export class CanvasContext extends BaseClass {
         }
     }
 
-    private computeRenderData(callback?: (rectObj, idx) => void) {
+    private computeRenderData(callback?: (rectObj, idx, fileIdx) => void) {
         this.renderRectData = new Array();
 
-        let middle: number = (this.height - this.timelineHeight) / 2;
         let idx: number = 0;
-        for (let interval of this.audioData) {
+        for (let data of this.audioData) {
+            let sample = isNaN(data[0]) ? 0 : data[0];
+            let fileIdx = data[1];
+            let posX = idx * this.framesWidthBar;
+            let posY = (this.height / 2 - this.timelineHeight / 2) - sample;
+            let negY = (this.height / 2 - this.timelineHeight / 2) + sample;
+            let width = this.framesWidthBar - this.framesWidthSpacer;
+
             let rectObj: CanvasRectObject = {
-                x: idx,
-                y: Math.ceil((1 + interval[0]) * middle),
-                width: this.framesWidthBar,
-                height: Math.max(1, (interval[1] - interval[0]) * middle),
+                x: posX,
+                y: posY,
+                width: width,
+                height: negY - posY > 0 ? negY - posY : width,
             };
             this.renderRectData.push(rectObj);
 
             if (typeof callback === "function") {
-                callback(rectObj, idx);
+                callback(rectObj, idx, fileIdx);
             }
             idx++;
         }
     }
 
-    private computeValues(bufferData: Float32Array) {
-        this.audioData = new Array(this.width);
-        this.step = Math.ceil(bufferData.length / this.width);
+    private computeValues(bufferData: Float32Array, positions: Array<number>) {
+        let numSubsets = Math.floor(this.width / this.framesWidthBar);
+        let subsetLength = bufferData.length / numSubsets;
 
-        for (let i = 0; i < this.width; i += 1) {
-            let min = 1.0;
-            let max = -1.0;
-            for (let j = 0; j < this.step; j += 1) {
-                let curr = bufferData[(i * this.step) + j];
-                if (curr < min) {
-                    min = curr;
-                } else if (curr > max) {
-                    max = curr;
+        this.audioData = new Array(numSubsets);
+
+        let bufferIdx = 0;
+        let normal = 0;
+        for (let i = 0; i < this.audioData.length; i++) {
+            let sum = 0;
+
+            for (let k = 0; k < subsetLength; k++) {
+                if (bufferData[bufferIdx]) {
+                    sum += Math.abs(bufferData[bufferIdx]);
                 }
+                bufferIdx++;
             }
-            this.audioData[i] = [min, max];
+            
+            var leftClosestIdx = positions.length ? positions.indexOf(positions.reduce(function (prev, curr) {
+                return prev <= bufferIdx && curr > bufferIdx ? prev : curr;
+            })) : 0;
+
+            this.audioData[i] = [sum / subsetLength, leftClosestIdx];
+            if (this.audioData[i][0] > normal) {
+                normal = this.audioData[i][0];
+            }
+        }
+
+        normal = 32768 / normal;
+        for (let i = 0; i < this.audioData.length; i++) {
+            this.audioData[i][0] *= normal;
+            this.audioData[i][0] = (this.audioData[i][0] / 32768) * ((this.height - this.timelineHeight) / 2);
+            
         }
     }
 

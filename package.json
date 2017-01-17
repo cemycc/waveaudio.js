@@ -2,7 +2,8 @@
   "name": "waveaudiojs",
   "version": "0.0.1",
   "description": "Wave Audio JS",
-  "main": "src/waveaudio.ts",
+  "main": "dist/waveaudio.js",
+  "typings": "./dist/main",
   "scripts": {
     "build": "rollup -c",
     "lint": "tslint 'src/**/*.ts' -t verbose --force",
