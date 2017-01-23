@@ -94,6 +94,7 @@ export class EffectsStore {
 
     private applyEffectPerSecond(start: number, end: number) {
         let seconds = [];
+        let secondIdx:number = 0; 
         let assignOutput = (idx: number, audioBuffer: AudioBuffer) => {
             if (audioBuffer) {
                 seconds[idx].outputBuffer = audioBuffer.getChannelData(0);
@@ -102,9 +103,11 @@ export class EffectsStore {
         let p: Promise<AudioBuffer> = new Promise<AudioBuffer>((resolve) => resolve());
         start = Math.floor(start / this.audioCtx.sampleRate);
         end = Math.ceil(end / this.audioCtx.sampleRate);
+
         for (let i = start; i < end; i++) {
             let offlineContext = new OfflineAudioContext(1, this.audioCtx.sampleRate, this.audioCtx.sampleRate);
             let tuna = new Tuna(offlineContext);
+
             let second = {
                 idx: this.audioCtx.sampleRate * i,
                 effectsList: this.effectsForSecond(i, tuna),
@@ -113,6 +116,9 @@ export class EffectsStore {
                     this.audioCtx.sampleRate * (i + 1)),
                 outputBuffer: null
             };
+            if (!second.effectsList.length) {
+                continue;
+            }
             seconds.push(second);
 
             let buff = offlineContext.createBuffer(1, second.inputBuffer.length, this.audioCtx.sampleRate);
@@ -125,10 +131,12 @@ export class EffectsStore {
 
             p = p.then((audioBuffer) => {
                 if (audioBuffer) {
-                    seconds[i - 1].outputBuffer = audioBuffer.getChannelData(0);
+                    seconds[secondIdx].outputBuffer = audioBuffer.getChannelData(0);
+                    secondIdx++;
                 }
                 return offlineContext.startRendering();
             });
+            
         }
         p.then((audioBuffer) => {
             if (audioBuffer) {

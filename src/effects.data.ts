@@ -1,35 +1,25 @@
-// export enum Effects {
-//     Delay,
-//     Filter,
-//     Chorus,
-//     Phaser,
-//     Overdrive,
-//     Compressor,
-//     Panner,
-//     Gain,
-//     Tremolo,
-//     WahWah,
-//     Bitcrusher,
-//     MoogFilter,
-//     PingPongDelay
-// }
-
 export class Property {
     public static Boolean = 'boolean';
     public static Integer = 'integer';
     public static Float = 'float';
+    public static List = 'list';
     public name: string;
     public type: string;
-    public defaultValue: number;
+    public defaultValue: any;
     public min: number;
     public max: number;
     public step: number;
+    public items: Array<string>;
 
-    constructor(name: string, type: string, defaultValue: number, min: number = 0, max: number = null, step: number = 1) {
+    constructor(name: string, type: string, defaultValue: any, min: any = 0, max: number = null, step: number = 1) {
         this.name = name;
         this.type = type;
         this.defaultValue = defaultValue;
-        this.min = min;
+        if (this.type === Property.List) {
+            this.items = min;
+        } else {
+            this.min = min;
+        }
         this.max = max;
         this.step = step;
     }
@@ -37,6 +27,16 @@ export class Property {
 
 export class Effects {
     public static list = {
+        Filter: {
+            properties: [
+                new Property('frequency', Property.Integer, 440, 20, 22050, 1),
+                new Property('Q', Property.Integer, 1, 0.001, 100, 0.001),
+                new Property('gain', Property.Integer, 0, -40, 40, 1),
+                new Property('filterType', Property.List, 'lowpass',
+                    ['lowpass', 'highpass', 'bandpass', 'lowshelf', 'highshelf', 'peaking', 'notch', 'allpass'])
+            ],
+            description: ''
+        },
         Gain: {
             properties: [
                 new Property('gain', Property.Float, 0.7, 0, 30, 0.1),
@@ -115,16 +115,16 @@ export class Effects {
         Bitcrusher: {
             properties: [
                 new Property('bits', Property.Integer, 4, 1, 16, 1),
-                new Property('normfreq', Property.Float, 0.1, 0, 1, 0.1),
-                new Property('bufferSize', Property.Integer, 4096, 256, 16384, 2)
+                new Property('normfreq', Property.Float, 0.1, 0, 1, 0.1)
+                // new Property('bufferSize', Property.Integer, 4096, 256, 16384, 2)
             ],
             description: ''
         },
         MoogFilter: {
             properties: [
                 new Property('cutoff', Property.Float, 0.065, 0, 1, 0.001),
-                new Property('resonance', Property.Float, 3.5, 0, 4, 0.1),
-                new Property('bufferSize', Property.Integer, 4096, 256, 16384, 2)
+                new Property('resonance', Property.Float, 3.5, 0, 4, 0.1)
+                // new Property('bufferSize', Property.Integer, 4096, 256, 16384, 2)
             ],
             description: ''
         }

@@ -9,6 +9,10 @@ export declare class WaveAudioJS extends BaseClass {
     readonly loadedFiles: IFile[];
     readonly effects: Array<IEffect>;
     readonly effectsList: {
+        Filter: {
+            properties: Property[];
+            description: string;
+        };
         Gain: {
             properties: Property[];
             description: string;

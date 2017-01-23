@@ -2,16 +2,22 @@ export declare class Property {
     static Boolean: string;
     static Integer: string;
     static Float: string;
+    static List: string;
     name: string;
     type: string;
-    defaultValue: number;
+    defaultValue: any;
     min: number;
     max: number;
     step: number;
-    constructor(name: string, type: string, defaultValue: number, min?: number, max?: number, step?: number);
+    items: Array<string>;
+    constructor(name: string, type: string, defaultValue: any, min?: any, max?: number, step?: number);
 }
 export declare class Effects {
     static list: {
+        Filter: {
+            properties: Property[];
+            description: string;
+        };
         Gain: {
             properties: Property[];
             description: string;
