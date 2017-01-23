@@ -1,58 +1,33 @@
 import {IProperties, IFile, BaseClass} from "./base";
 import {EventDispatcher} from "./event.dispatcher";
 
-export class AudioContext extends BaseClass {
+export class AudioBufferContext extends BaseClass {
     public sourceFiles: Array<IFile> = [];
 
     private ctx: AudioContext;
     private buffer: AudioBuffer;
+    private originalBuffer: Float32Array;
+    private activeChannel: number;
+    private filesPositions: Array<number> = [];
+    private playAudioSource: AudioBufferSourceNode;
+    private audioContextLoad: number;
+    private audioContextPlay: number;
 
     private onDecodedBuffers = new EventDispatcher<AudioBuffer>();
 
-    constructor(properties: IProperties) {
+    constructor(activeChannel: number, properties: IProperties) {
         super(properties);
         super.setProperties(this);
 
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.activeChannel = activeChannel;
+        this.ctx = new (window.AudioContext)();
+        this.audioContextLoad = Date.now();
     }
 
-
-    public decodeBuffersFromPromises(files: Array<IFile>)  {
+    public addFiles(files: Array<IFile>)  {
         Promise.all(files.map((file) => file.promise))
             .then((buffers: any) => {
-                this.decodeBuffers(buffers, files);
-            }).catch((error: Error) => {
-                console.error(error);
-            });
-    }
-
-    public decodeBuffers(buffers: Array<ArrayBuffer>, files: Array<IFile>) {
-        let promises: Array<AudioBuffer> = buffers.map((buffer) => this.ctx.decodeAudioData(buffer));
-
-        Promise.all(promises)
-            .then(bfs => {
-                bfs = bfs.map((buffer, idx) => {
-                    let file = files[idx];
-                    file.buffer = buffer;
-                    return file;
-                });
-                this.sourceFiles = this.sourceFiles.concat(bfs);
-
-                //TODO: check if this is added at begining ??
-                // if (this.buffer !== undefined) {
-                //     bfs = bfs.concat(this.buffer); 
-                // }
-
-                // TODO: when the buffer is changed, the source.buffer assignation should be also changed !
-                this.buffer = this.createAudioBuffer(this.sourceFiles);
-                this.onDecodedBuffers.trigger(this.buffer);
-                
-
-
-                // let source = this.ctx.createBufferSource();
-                // source.buffer = this.buffer;
-                // source.connect(this.ctx.destination);
-                // source.start();
+                this.loadAudioFilesBuffers(buffers, files);
             }).catch((error: Error) => {
                 console.error(error);
             });
@@ -63,37 +38,109 @@ export class AudioContext extends BaseClass {
             let fileObj = this.sourceFiles.find(f => f.url === fileName);
             this.sourceFiles.splice(this.sourceFiles.indexOf(fileObj), 1);
         }
+        this.assignBuffer(this.createAudioBuffer(this.sourceFiles), true, true, fireEvent);
+    }
 
-        this.buffer = this.createAudioBuffer(this.sourceFiles);
-        fireEvent && this.onDecodedBuffers.trigger(this.buffer);
+    public extractBufferAt(startIndex: number, endIndex: number): Float32Array {
+        return this.originalBuffer.slice(startIndex, endIndex);
+    }
+
+    public applyBufferChanges(changes: Array<any>) {
+        let arr = this.buffer.getChannelData(this.activeChannel);
+        for (let item of changes) {
+            if (item.idx + item.outputBuffer.length > arr.length) {
+                arr.set(item.outputBuffer.slice(0, arr.length - item.idx), item.idx);
+            } else {
+                arr.set(item.outputBuffer, item.idx);
+            }
+        }
+        this.assignBuffer(this.createAudioBuffer(this.sourceFiles, [arr]), false, false, true);
+    }
+
+    public revertBufferChanges() {
+        let arr = this.originalBuffer.slice();
+        this.assignBuffer(this.createAudioBuffer(this.sourceFiles, [arr]), false, false, true);
+    }
+
+    public playSound(startAtSecond: number = 0, callback?: Function) {
+        this.playAudioSource = this.ctx.createBufferSource();
+        this.playAudioSource.buffer = this.buffer;
+        this.playAudioSource.connect(this.ctx.destination);
+        if (callback) {
+            this.playAudioSource.onended = () => callback();
+        }
+        this.audioContextPlay = ((Date.now() - this.audioContextLoad) / 1000) - startAtSecond;
+        this.playAudioSource.start(0, startAtSecond);
+    }
+
+    public stopSound() {
+        if (this.playAudioSource) {
+            if (this.playAudioSource.onended) {
+                this.playAudioSource.onended();                
+            }
+            this.playAudioSource.stop();
+        }
+    }
+
+    public get currentTime(): number {
+        return this.ctx.currentTime - this.audioContextPlay;
     }
 
     public get decodedBuffers(): EventDispatcher<AudioBuffer> {
         return this.onDecodedBuffers;
     };
 
-    public get currentTime(): number {
-        return this.ctx.currentTime;
-    }
-
     public get fileNames(): Array<string> {
         return this.sourceFiles.map(f => f.url);
     }
 
-    public findStartPositionsOnChannel(channel: number): Array<number> {
-        let positions: Array<number> = [];
-        
-        let sum = 0;
-        for (let file of this.sourceFiles) {
-            let ch = channel > file.buffer.numberOfChannels - 1 ? 0 : channel;
-            let startAt = sum;
-            positions.push(startAt);
-            sum += file.buffer.getChannelData(ch).length;
-        }
-        return positions;
+    public get positons(): Array<number> {
+        return this.filesPositions;
     }
 
-    private createAudioBuffer(fromAudioBuffers: Array<IFile>) {
+    public get sampleRate(): number {
+        return this.ctx.sampleRate;
+    }
+
+    public get duration(): number {
+        return this.buffer.duration;
+    }
+
+    public findFileIndex(file: IFile): number {
+        return this.sourceFiles.indexOf(file);
+    }
+
+    private loadAudioFilesBuffers(buffers: Array<ArrayBuffer>, files: Array<IFile>) {
+        let promises = buffers.map((buffer) => this.ctx.decodeAudioData(buffer));
+
+        Promise.all(promises)
+            .then(bfs => {
+                let latestSourceFiles = bfs.map((buffer, idx) => {
+                    let file = files[idx];
+                    file.buffer = buffer;
+                    return file;
+                });
+
+                this.sourceFiles = this.sourceFiles.concat(latestSourceFiles);
+                this.assignBuffer(this.createAudioBuffer(this.sourceFiles));
+            }).catch((error: Error) => {
+                console.error(error);
+            });
+    }
+
+    private findFilesPositionsOnBuffer() {
+        this.filesPositions = [];
+
+        let sum = 0;
+        for (let file of this.sourceFiles) {
+            let ch = this.activeChannel > file.buffer.numberOfChannels - 1 ? 0 : this.activeChannel;
+            let startAt = sum;
+            this.filesPositions.push(startAt);
+            sum += file.buffer.getChannelData(ch).length;
+        }
+    }
+
+    private createAudioBuffer(fromAudioBuffers: Array<IFile>, channelBuffers: Array<Float32Array> = []) {
         let maxChannels: number = 0;
         let totalDuration: number = 0;
 
@@ -124,10 +171,24 @@ export class AudioContext extends BaseClass {
                     data.push(new Float32Array(abf.getChannelData(0).length));
                 }
             });
-            resultBuffer.copyToChannel(this.concatBuffersData(data), idx, 0);
+            if (channelBuffers[idx] && Object.prototype.toString.call(channelBuffers[idx]) === "[object Float32Array]") {
+                resultBuffer.copyToChannel(channelBuffers[idx], idx, 0);
+            } else {
+                resultBuffer.copyToChannel(this.concatBuffersData(data), idx, 0);
+            }
         } while (++idx < maxChannels);
-        
+
         return resultBuffer;
+    }
+
+    private assignBuffer(audioBuffer: AudioBuffer, setOriginal: boolean = true, reloadPos: boolean = true, fireEvent: boolean = true) {
+        this.stopSound();
+        this.buffer = audioBuffer;
+        if (setOriginal) {
+            this.originalBuffer = this.buffer.getChannelData(this.activeChannel).slice();
+        }
+        reloadPos && this.findFilesPositionsOnBuffer();
+        fireEvent && this.onDecodedBuffers.trigger(this.buffer);
     }
 
     private concatBuffersData(buffersData: Array<Float32Array>): Float32Array {

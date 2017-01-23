@@ -13,17 +13,17 @@ export class CanvasContext extends BaseClass {
     public framesWidthBar: number = 5;
     public framesWidthSpacer: number = 2;
     public timelineHeight: number = 40;
-    public timelineFont: string = "9px Arial";
+    public timelineFont: string = "11px Arial";
     public timelineTimeColor: string = "rgb(47,79,79)";
     public timelineBarColor: string = "rgb(128,128,128)";
-    public barHeight: number = 10;
+    public barHeight: number = 12;
     public barWidth: number = 1;
     public barLargeGroupCount: number = 10;
     public barSmallGroupCount: number = 5;
     public wrapper: HTMLElement = undefined;
 
-    private staticEl: HTMLElement;
-    private framesEl: HTMLElement;
+    private staticEl: HTMLCanvasElement;
+    private framesEl: HTMLCanvasElement;
     private staticCtx: CanvasRenderingContext2D;
     private framesCtx: CanvasRenderingContext2D;
     private ratio: number;
@@ -41,21 +41,21 @@ export class CanvasContext extends BaseClass {
         super(properties);
         super.setProperties(this);
 
-        this.staticEl = document.createElement("canvas");
+        this.staticEl = <HTMLCanvasElement> document.createElement("canvas");
         this.staticCtx = this.staticEl.getContext("2d");
 
-        this.framesEl = document.createElement("canvas");
+        this.framesEl = <HTMLCanvasElement> document.createElement("canvas");
         this.framesEl.style.position = "absolute";
         this.framesEl.style.top = "0";
         this.framesEl.style.left = "0";
 
         this.framesCtx = this.framesEl.getContext("2d");
 
-        let backingStoreRatio: number = this.staticCtx.webkitBackingStorePixelRatio ||
-                                    this.staticCtx.mozBackingStorePixelRatio ||
-                                    this.staticCtx.msBackingStorePixelRatio ||
-                                    this.staticCtx.oBackingStorePixelRatio ||
-                                    this.staticCtx.backingStorePixelRatio || 1;
+        let backingStoreRatio: number = this.staticCtx['webkitBackingStorePixelRatio'] ||
+                                    this.staticCtx['mozBackingStorePixelRatio'] ||
+                                    this.staticCtx['msBackingStorePixelRatio'] ||
+                                    this.staticCtx['oBackingStorePixelRatio'] ||
+                                    this.staticCtx['backingStorePixelRatio'] || 1;
         this.ratio = window.devicePixelRatio / backingStoreRatio;
 
         this.resize();
@@ -111,13 +111,10 @@ export class CanvasContext extends BaseClass {
 
     public draw() {
         this.computeRenderData((rectObj: CanvasRectObject, idx: number, fileIdx: number) => {
-            //this.staticCtx.fillStyle = this.framesColor;
             this.staticCtx.fillStyle = this.audioFiles.length ? this.audioFiles[fileIdx].color : this.framesColor;
             this.staticCtx.fillRect(rectObj.x, rectObj.y, rectObj.width, rectObj.height);
         });
-
         this.drawTimeline(this.audioDuration);
-        //this.startRenderingProgress();
     }
 
     public startRenderingProgress() {
@@ -135,6 +132,7 @@ export class CanvasContext extends BaseClass {
 
     public stopRenderingProgress() {
         if (this.rafId) {
+            this.framesCtx.clearRect(0, 0, this.width, this.height);
             cancelAnimationFrame(this.rafId);
         }
     }
@@ -152,7 +150,7 @@ export class CanvasContext extends BaseClass {
         }
     }
 
-    private computeRenderData(callback?: (rectObj, idx, fileIdx) => void) {
+    private computeRenderData(callback?: (rectObj: CanvasRectObject, idx: number, fileIdx: number) => void) {
         this.renderRectData = new Array();
 
         let idx: number = 0;
@@ -196,7 +194,7 @@ export class CanvasContext extends BaseClass {
                 }
                 bufferIdx++;
             }
-            
+
             var leftClosestIdx = positions.length ? positions.indexOf(positions.reduce(function (prev, curr) {
                 return prev <= bufferIdx && curr > bufferIdx ? prev : curr;
             })) : 0;
@@ -211,7 +209,7 @@ export class CanvasContext extends BaseClass {
         for (let i = 0; i < this.audioData.length; i++) {
             this.audioData[i][0] *= normal;
             this.audioData[i][0] = (this.audioData[i][0] / 32768) * ((this.height - this.timelineHeight) / 2);
-            
+
         }
     }
 

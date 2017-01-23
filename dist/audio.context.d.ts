@@ -1,0 +1,34 @@
+import { IProperties, IFile, BaseClass } from "./base";
+import { EventDispatcher } from "./event.dispatcher";
+export declare class AudioBufferContext extends BaseClass {
+    sourceFiles: Array<IFile>;
+    private ctx;
+    private buffer;
+    private originalBuffer;
+    private activeChannel;
+    private filesPositions;
+    private playAudioSource;
+    private audioContextLoad;
+    private audioContextPlay;
+    private onDecodedBuffers;
+    constructor(activeChannel: number, properties: IProperties);
+    addFiles(files: Array<IFile>): void;
+    removeFiles(filesNames: Array<string>, fireEvent?: boolean): void;
+    extractBufferAt(startIndex: number, endIndex: number): Float32Array;
+    applyBufferChanges(changes: Array<any>): void;
+    revertBufferChanges(): void;
+    playSound(startAtSecond?: number, callback?: Function): void;
+    stopSound(): void;
+    readonly currentTime: number;
+    readonly decodedBuffers: EventDispatcher<AudioBuffer>;
+    readonly fileNames: Array<string>;
+    readonly positons: Array<number>;
+    readonly sampleRate: number;
+    readonly duration: number;
+    findFileIndex(file: IFile): number;
+    private loadAudioFilesBuffers(buffers, files);
+    private findFilesPositionsOnBuffer();
+    private createAudioBuffer(fromAudioBuffers, channelBuffers?);
+    private assignBuffer(audioBuffer, setOriginal?, reloadPos?, fireEvent?);
+    private concatBuffersData(buffersData);
+}

@@ -5,24 +5,26 @@
   "main": "dist/waveaudio.js",
   "typings": "./dist/main",
   "scripts": {
-    "build": "rollup -c",
+    "build": "webpack",
     "lint": "tslint 'src/**/*.ts' -t verbose --force",
     "serve": "live-server --port=3000 --entry-file='examples/index.html' --watch='dist','examples' --quiet --no-browser",
-    "watch": "rollup -c --watch",
+    "watch": "webpack --watch",
     "dev": "npm-run-all lint --parallel watch serve"
   },
   "author": "Emanuel Costea",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^7.0.1",
+    "@types/webaudioapi": "0.0.27",
     "live-server": "^1.0.0",
     "npm-run-all": "^2.3.0",
-    "rollup": "^0.34.3",
-    "rollup-plugin-typescript": "^0.7.7",
-    "rollup-watch": "^2.5.0",
+    "ts-loader": "^2.0.0",
     "tslint": "^3.14.0",
-    "typescript": "^1.8.10"
+    "typescript": "^2.1.5",
+    "webpack": "^2.2.0"
   },
   "dependencies": {
-
+    "randomcolor": "^0.4.4",
+    "tunajs": "^1.0.0"
   }
 }
