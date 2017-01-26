@@ -25,6 +25,7 @@ export class AudioBufferContext extends BaseClass {
     }
 
     public addFiles(files: Array<IFile>)  {
+        document.body.style.cursor = 'wait';
         Promise.all(files.map((file) => file.promise))
             .then((buffers: any) => {
                 this.loadAudioFilesBuffers(buffers, files);
@@ -34,6 +35,7 @@ export class AudioBufferContext extends BaseClass {
     }
 
     public removeFiles(filesNames: Array<string>, fireEvent: boolean = true) {
+        document.body.style.cursor = 'wait';
         for(let fileName of filesNames) {
             let fileObj = this.sourceFiles.find(f => f.url === fileName);
             this.sourceFiles.splice(this.sourceFiles.indexOf(fileObj), 1);
@@ -189,6 +191,7 @@ export class AudioBufferContext extends BaseClass {
         }
         reloadPos && this.findFilesPositionsOnBuffer();
         fireEvent && this.onDecodedBuffers.trigger(this.buffer);
+        document.body.style.cursor = 'default';
     }
 
     private concatBuffersData(buffersData: Array<Float32Array>): Float32Array {
