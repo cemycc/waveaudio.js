@@ -205,10 +205,10 @@ export class CanvasContext extends BaseClass {
             }
         }
 
-        normal = 32768 / normal;
+        normal = 32767 / normal;
         for (let i = 0; i < this.audioData.length; i++) {
             this.audioData[i][0] *= normal;
-            this.audioData[i][0] = (this.audioData[i][0] / 32768) * ((this.height - this.timelineHeight) / 2);
+            this.audioData[i][0] = (this.audioData[i][0] / 32767) * ((this.height - this.timelineHeight) / 2);
 
         }
     }
